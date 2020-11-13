@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from getpass import getuser
 from logging import LogRecord, StreamHandler
+from typing import IO
 
 import pytz
 
@@ -10,14 +11,14 @@ import pytz
 class StandardisedLogHandler(StreamHandler):
     def __init__(
         self,
-        service,
-        component,
-        environment,
-        deployment,
-        user=None,
-        timezone="UTC",
-        stream=sys.stdout,
-    ):
+        service: str,
+        component: str,
+        environment: str,
+        deployment: str,
+        user: str = None,
+        timezone: str = "UTC",
+        stream: IO = sys.stdout,
+    ) -> None:
         self.service = service
         self.component = component
         self.environment = environment
