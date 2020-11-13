@@ -1,3 +1,3 @@
-from .handler import StandardisedLogHandler
+from .handler import ImmutableContextError, StandardisedLogHandler
 
-__all__ = ["StandardisedLogHandler"]
+__all__ = ["StandardisedLogHandler", "ImmutableContextError"]
