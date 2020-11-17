@@ -8,7 +8,7 @@ import immutables
 MAIN_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(MAIN_DIR))
 
-from standardised_logging import StandardisedLogHandler  # noqa: E402
+from standardised_logging import StandardisedLogger  # noqa: E402
 
 main_context = immutables.Map(log_correlation_id=str(uuid4()), log_level=logging.INFO)
 
@@ -17,7 +17,8 @@ secondary_context = immutables.Map(
 )
 
 # Stream is configurable as any IO, it defaults to stdout
-log_handler = StandardisedLogHandler(
+logger = StandardisedLogger(
+    name="my_logger",
     service="test-service",
     component="test-component",
     environment="dev",
@@ -26,16 +27,13 @@ log_handler = StandardisedLogHandler(
     context=main_context,
     stream=sys.stdout,
 )
-logger = logging.getLogger()
-logger.addHandler(log_handler)
-# This level is overridden by the handler
-# setting it to debug gives the handler complete control
-logger.setLevel(logging.DEBUG)
 
 print(f"Starting logger with context: {main_context}\n")
 logger.debug("This debug message should not be visible")
 logger.info("Got to love an info message")
 logger.warning("But be careful, there be dragons!")
 
-with log_handler.override_context(secondary_context):
+with logger.override_context(secondary_context):
     logger.debug("In this context i can print debugs!")
+
+logger.debug("This debug message should not be visible")
