@@ -16,6 +16,7 @@ secondary_context = immutables.Map(
     log_correlation_id=str(uuid4()), log_level=logging.DEBUG
 )
 
+# Stream is configurable as any IO, it defaults to stdout
 log_handler = StandardisedLogHandler(
     service="test-service",
     component="test-component",
@@ -23,6 +24,7 @@ log_handler = StandardisedLogHandler(
     deployment="test-deployment",
     user="test-user",
     context=main_context,
+    stream=sys.stdout,
 )
 logger = logging.getLogger()
 logger.addHandler(log_handler)
