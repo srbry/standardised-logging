@@ -1,9 +1,10 @@
 import json
 import sys
+from contextlib import contextmanager
 from datetime import datetime
 from getpass import getuser
 from logging import INFO, LogRecord, StreamHandler, getLevelName
-from typing import IO
+from typing import IO, Iterator
 from uuid import uuid4
 
 import immutables
@@ -33,13 +34,13 @@ class StandardisedLogHandler(StreamHandler):
 
         if context is None:
             context = immutables.Map(
-                log_correlation_id=str(uuid4()), configured_log_level=log_level
+                log_correlation_id=str(uuid4()), log_level=log_level
             )
         self._context = context
-        self.level = self._context.get("configured_log_level", INFO)
+        self.level = self._context.get("log_level", INFO)
 
     def emit(self, record: LogRecord) -> None:
-        self.level = self._context.get("configured_log_level", INFO)
+        self.level = self._context.get("log_level", INFO)
         super().emit(record)
 
     def format(self, record: LogRecord) -> str:
@@ -55,7 +56,7 @@ class StandardisedLogHandler(StreamHandler):
         }
         log_message = {
             **log_message,
-            **self._context,
+            **{k: self._context[k] for k in self._context if k not in ["log_level"]},
             "configured_log_level": getLevelName(self.level),
         }
         return json.dumps(log_message, separators=(",", ":"))
@@ -73,6 +74,18 @@ class StandardisedLogHandler(StreamHandler):
         if attribute_name in self._context:
             raise ImmutableContextError(attribute_name)
         self._context = self._context.set(attribute_name, attribute_value)
+
+    @contextmanager
+    def override_context(self, context: immutables.Map) -> Iterator[None]:
+        main_context = self._context
+        main_level = self.level
+        try:
+            self._context = context
+            self.level = context.get("log_level", INFO)
+            yield
+        finally:
+            self._context = main_context
+            self.level = main_level
 
 
 class ImmutableContextError(Exception):

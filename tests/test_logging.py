@@ -33,7 +33,7 @@ def test_logging(logger, log_stream, caplog):
     with caplog.at_level(logging.INFO):
         logger.info("my info log message")
         logger.debug("my debug log message")
-        logger.warn("this is a warning")
+        logger.warning("this is a warning")
         log_messages = parse_log_lines(log_stream.getvalue())
         assert len(log_messages) == 2
         assert len(log_messages[0]) == 10
@@ -79,7 +79,7 @@ def test_log_level_set_by_context(default_handler_config, log_stream):
     log_handler = StandardisedLogHandler(
         **default_handler_config,
         context=immutables.Map(
-            log_correlation_id=str(uuid4()), configured_log_level=logging.WARN
+            log_correlation_id=str(uuid4()), log_level=logging.ERROR
         ),
         stream=log_stream,
     )
@@ -87,28 +87,27 @@ def test_log_level_set_by_context(default_handler_config, log_stream):
     logger.addHandler(log_handler)
     logger.info("my info log message")
     logger.debug("my debug log message")
-    logger.warn("this is a warning")
+    logger.warning("this is a warning")
     logger.critical("this is a critical warning")
+    logger.error("this is an error")
     log_messages = parse_log_lines(log_stream.getvalue())
     assert len(log_messages) == 2
-    assert log_messages[0]["log_level"] == "WARNING"
-    assert log_messages[0]["configured_log_level"] == "WARNING"
-    assert log_messages[1]["log_level"] == "CRITICAL"
-    assert log_messages[1]["configured_log_level"] == "WARNING"
+    assert log_messages[0]["log_level"] == "CRITICAL"
+    assert log_messages[0]["configured_log_level"] == "ERROR"
+    assert log_messages[1]["log_level"] == "ERROR"
+    assert log_messages[1]["configured_log_level"] == "ERROR"
 
 
 def test_log_level_is_immutable(default_handler_config, log_stream):
     log_handler = StandardisedLogHandler(
         **default_handler_config,
-        context=immutables.Map(
-            log_correlation_id=str(uuid4()), configured_log_level=logging.WARN
-        ),
+        context=immutables.Map(log_correlation_id=str(uuid4()), log_level=logging.WARN),
         stream=log_stream,
     )
     logger = logging.getLogger("test_log_level_is_immutable")
     logger.addHandler(log_handler)
     log_handler.setLevel(logging.INFO)
-    logger.warn("this is a warning")
+    logger.warning("this is a warning")
     logger.info("my info log message")
     logger.debug("my debug log message")
     logger.critical("this is a critical warning")
@@ -134,8 +133,34 @@ def test_set_context_attribute(caplog, logger, log_handler, log_stream):
 
 def test_set_context_attribute_update(log_handler):
     with pytest.raises(ImmutableContextError) as err:
-        log_handler.set_context_attribute("configured_log_level", logging.DEBUG)
+        log_handler.set_context_attribute("log_level", logging.DEBUG)
     assert (
         str(err.value)
-        == "Context attributes are immutable, could not override 'configured_log_level'"
+        == "Context attributes are immutable, could not override 'log_level'"
     )
+
+
+def test_override_context(default_handler_config, log_stream):
+    log_handler = StandardisedLogHandler(
+        **default_handler_config,
+        context=immutables.Map(log_correlation_id="foobar", log_level=logging.INFO),
+        stream=log_stream,
+    )
+    logger = logging.getLogger("test_override_context")
+    logger.addHandler(log_handler)
+    logger.setLevel(logging.DEBUG)
+    logger.info("my info log message")
+    logger.debug("a debug message")
+    with log_handler.override_context(
+        immutables.Map(
+            log_correlation_id="override_correlation_id",
+            log_level=logging.DEBUG,
+        )
+    ):
+        logger.debug("my overridden debug")
+    log_messages = parse_log_lines(log_stream.getvalue())
+    assert len(log_messages) == 2
+    assert log_messages[0]["log_correlation_id"] == "foobar"
+    assert log_messages[0]["description"] == "my info log message"
+    assert log_messages[1]["log_correlation_id"] == "override_correlation_id"
+    assert log_messages[1]["description"] == "my overridden debug"
