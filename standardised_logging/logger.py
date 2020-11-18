@@ -1,7 +1,7 @@
 import logging
 import sys
 from contextlib import contextmanager
-from typing import IO, Iterator
+from typing import IO, Iterator, Union
 
 import immutables
 
@@ -38,6 +38,13 @@ class StandardisedLogger(logging.Logger):
         )
         self.handlers = [self.standard_handler]
 
+    def setLevel(self, level: Union[int, str]) -> None:
+        raise LogLevelException(
+            "StandardisedLogger does not support setting log level this way. "
+            + "Please set the log level using the 'log_level' attribute "
+            + "on your context"
+        )
+
     @contextmanager
     def override_context(self, context: immutables.Map) -> Iterator[None]:
         main_context = self.standard_handler._context
@@ -49,3 +56,7 @@ class StandardisedLogger(logging.Logger):
         finally:
             self.standard_handler._context = main_context
             self.standard_handler.level = main_level
+
+
+class LogLevelException(Exception):
+    pass

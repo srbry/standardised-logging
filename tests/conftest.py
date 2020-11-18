@@ -3,7 +3,7 @@ from io import StringIO
 
 import pytest
 
-from standardised_logging import StandardisedLogHandler
+from standardised_logging import StandardisedLogger, StandardisedLogHandler
 
 
 @pytest.fixture
@@ -27,6 +27,13 @@ def log_handler(log_stream, default_handler_config):
     return StandardisedLogHandler(
         **default_handler_config,
         stream=log_stream,
+    )
+
+
+@pytest.fixture
+def default_logger(default_handler_config, log_stream):
+    return StandardisedLogger(
+        name="default_standardised_logger", **default_handler_config, stream=log_stream
     )
 
 

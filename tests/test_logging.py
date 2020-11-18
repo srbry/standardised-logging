@@ -7,7 +7,12 @@ import immutables
 import pytest
 from freezegun import freeze_time
 
-from standardised_logging import ImmutableContextError, StandardisedLogHandler
+from standardised_logging import (
+    ImmutableContextError,
+    LogLevelException,
+    StandardisedLogger,
+    StandardisedLogHandler,
+)
 
 
 def parse_log_lines(logs):
@@ -164,3 +169,37 @@ def test_override_context(default_handler_config, log_stream):
     assert log_messages[0]["description"] == "my info log message"
     assert log_messages[1]["log_correlation_id"] == "override_correlation_id"
     assert log_messages[1]["description"] == "my overridden debug"
+
+
+def test_logger(default_handler_config, log_stream):
+    logger = StandardisedLogger(
+        name="test_logger",
+        **default_handler_config,
+        context=immutables.Map(log_correlation_id="foobar", log_level=logging.INFO),
+        stream=log_stream,
+    )
+    logger.info("my info log message")
+    logger.debug("a debug message")
+    with logger.override_context(
+        immutables.Map(
+            log_correlation_id="override_correlation_id",
+            log_level=logging.DEBUG,
+        )
+    ):
+        logger.debug("my overridden debug")
+    log_messages = parse_log_lines(log_stream.getvalue())
+    assert len(log_messages) == 2
+    assert log_messages[0]["log_correlation_id"] == "foobar"
+    assert log_messages[0]["description"] == "my info log message"
+    assert log_messages[1]["log_correlation_id"] == "override_correlation_id"
+    assert log_messages[1]["description"] == "my overridden debug"
+
+
+def test_setLevel(default_logger):
+    with pytest.raises(LogLevelException) as err:
+        default_logger.setLevel(logging.WARNING)
+    assert str(err.value) == (
+        "StandardisedLogger does not support setting log level this way. "
+        + "Please set the log level using the 'log_level' attribute "
+        + "on your context"
+    )
