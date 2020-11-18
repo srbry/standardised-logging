@@ -85,3 +85,11 @@ def my_function(context, my_var):
         logger.info("Started my_function")
     return my_var
 ```
+
+#### Updating context attributes
+
+Context attributes are immutable, however it is possible to add new ones. All attributes on a context will appear in the logs.
+
+```python
+logger.set_context_attribute("my_new_attribute", "my_attribute_value")
+```

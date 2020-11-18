@@ -45,6 +45,9 @@ class StandardisedLogger(logging.Logger):
             + "on your context"
         )
 
+    def set_context_attribute(self, attribute_name: str, attribute_value: str) -> None:
+        self.standard_handler.set_context_attribute(attribute_name, attribute_value)
+
     @contextmanager
     def override_context(self, context: immutables.Map) -> Iterator[None]:
         main_context = self.standard_handler._context

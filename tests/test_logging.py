@@ -203,3 +203,16 @@ def test_setLevel(default_logger):
         + "Please set the log level using the 'log_level' attribute "
         + "on your context"
     )
+
+
+def test_logger_set_context_attribute(default_logger, log_stream):
+    assert default_logger.standard_handler._context.get("my_attribute") is None
+    default_logger.set_context_attribute("my_attribute", "my_attribute_value")
+    assert (
+        default_logger.standard_handler._context.get("my_attribute")
+        == "my_attribute_value"
+    )
+    default_logger.info("my info log message")
+    log_messages = parse_log_lines(log_stream.getvalue())
+    assert len(log_messages[0]) == 11
+    assert log_messages[0]["my_attribute"] == "my_attribute_value"
